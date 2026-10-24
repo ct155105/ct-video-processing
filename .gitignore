@@ -1,7 +1,11 @@
 # ---------- Secrets & credentials ----------
-# Google Photos OAuth client secrets and cached tokens (see ingest/client_secret.json.example)
+# Google Photos OAuth client secrets and cached tokens.
+# These patterns contain no slash, so they match at ANY depth (ingest/token.json too).
+# The leading * also matches the bare name, and covers custom --token-path values
+# such as ingest/photos_token.json.
 client_secret*.json
-token.json
+*credentials.json
+*token.json
 *token.pickle
 # Service account keys — never commit these; use ADC or workload identity
 *-sa-key.json

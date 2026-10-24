@@ -8,7 +8,7 @@ UV           := uv
 PYTHON       := uv run python
 ADK          := uv run adk
 
-.PHONY: setup auth infra-bootstrap infra-init infra-apply ingest dev-ui deploy-indexer deploy-storyboard
+.PHONY: setup auth infra-bootstrap infra-init infra-apply ingest ingest-status dev-ui deploy-indexer deploy-storyboard
 
 ## 0. Initialize project and sync dependencies via uv
 setup:
@@ -63,6 +63,22 @@ ingest:
 		--project-id=$(PROJECT_ID) \
 		--bucket-name=$(BUCKET) \
 		--job-id="$(JOB_ID)"
+
+## 3b. Progress of a running (or finished) ingest, safe to run from another shell.
+## Counts COMPLETED objects only: an in-flight resumable upload is not visible to
+## GCS listing until it finalizes. Per-video byte progress is printed by the
+## ingest process itself.
+ingest-status:
+	@if [ -z "$(strip $(JOB_ID))" ]; then \
+		echo "make: *** JOB_ID is required."; \
+		echo "    Usage: make ingest-status JOB_ID=caiman_weekend_2026"; \
+		exit 1; \
+	fi
+	@echo "gs://$(BUCKET)/$(JOB_ID)/"
+	@gcloud storage ls -l "gs://$(BUCKET)/$(JOB_ID)/**" 2>/dev/null | tail -1 \
+		|| echo "  no objects yet"
+	@gcloud storage du --summarize --readable-sizes "gs://$(BUCKET)/$(JOB_ID)/" 2>/dev/null \
+		|| true
 
 ## 4. Run local ADK Web UI via uv
 dev-ui:
