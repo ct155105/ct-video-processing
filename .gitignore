@@ -1,0 +1,71 @@
+# ---------- Secrets & credentials ----------
+# Google Photos OAuth client secrets and cached tokens (see ingest/client_secret.json.example)
+client_secret*.json
+token.json
+*token.pickle
+# Service account keys — never commit these; use ADC or workload identity
+*-sa-key.json
+*service-account*.json
+application_default_credentials.json
+.env
+.env.*
+
+# ---------- Terraform ----------
+# Provider binaries — large (100MB+) and re-downloadable via `terraform init`
+.terraform/
+# Local state: contains resource attributes and can contain secrets in plaintext
+*.tfstate
+*.tfstate.*
+.terraform.tfstate.lock.info
+# Variable files hold project IDs and other environment specifics
+*.tfvars
+*.tfvars.json
+# Plan output is a binary snapshot of state + diff
+*.tfplan
+crash.log
+crash.*.log
+# NOTE: .terraform.lock.hcl is intentionally NOT ignored — commit it to pin provider versions.
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.ipynb_checkpoints/
+
+# ---------- ADK / local agent runs ----------
+# ADK web UI session store and local artifacts
+.adk/
+sessions.db
+*.sqlite3
+
+# ---------- Local media ----------
+# Raw footage lives in GCS (gs://<project>-raw-video-ingest), never in git
+*.mp4
+*.mov
+*.m4v
+*.avi
+*.mkv
+*.wav
+*.mp3
+
+# ---------- OS & editors ----------
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+.vscode/
+.idea/
+*.swp
