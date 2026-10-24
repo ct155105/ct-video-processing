@@ -1,47 +1,49 @@
-PROJECT_ID   ?= $(shell gcloud config get-value project)
-REGION       ?= us-central1
-STATE_BUCKET ?= $(PROJECT_ID)-tfstate
+PROJECT_ID ?= $(shell gcloud config get-value project)
+REGION     ?= us-central1
+BUCKET     ?= $(PROJECT_ID)-raw-video-ingest
 
-.PHONY: auth infra-bootstrap infra-init infra-apply dev-ui deploy-indexer deploy-storyboard
+# Point directly to uv binaries
+UV         := uv
+PYTHON     := uv run python
+ADK        := uv run adk
 
-## 1. Authenticate local environment
+.PHONY: setup auth infra-init infra-apply ingest dev-ui deploy-indexer deploy-storyboard
+
+## 0. Initialize project and sync dependencies via uv
+setup:
+	$(UV) sync
+
 auth:
 	gcloud auth login
 	gcloud auth application-default login
 	gcloud config set project $(PROJECT_ID)
 
-## 2a. One-time: create the versioned bucket that holds Terraform state.
-## Must exist before `infra-init` — Terraform cannot provision its own backend.
-## Safe to re-run: a pre-existing bucket is reported and left untouched.
-infra-bootstrap:
-	gcloud storage buckets create gs://$(STATE_BUCKET) \
-		--project=$(PROJECT_ID) \
-		--location=$(REGION) \
-		--uniform-bucket-level-access \
-		--public-access-prevention || true
-	gcloud storage buckets update gs://$(STATE_BUCKET) --versioning
-
-## 2b. Initialize Terraform against the GCS backend.
-## The bucket is injected here because backend blocks cannot use variables.
 infra-init:
-	cd infra && terraform init -backend-config="bucket=$(STATE_BUCKET)"
+	cd infra && terraform init
 
 infra-apply:
 	cd infra && terraform apply -var="project_id=$(PROJECT_ID)" -var="region=$(REGION)"
 
-## 3. Run local ADK Web UI for debugging prompts & session state
-dev-ui:
-	adk web agents/storyboard_agent
+## 3. Run Google Photos -> GCS Ingestion using uv run
+ingest:
+	$(PYTHON) ingest/photos_to_gcs.py \
+		--project-id=$(PROJECT_ID) \
+		--bucket-name=$(BUCKET) \
+		$(if $(JOB_ID),--job-id="$(JOB_ID)",)
 
-## 4. Deploy Agents to Agent Runtime
+## 4. Run local ADK Web UI via uv
+dev-ui:
+	$(ADK) web agents/storyboard_agent
+
+## 5. Deploy Agents to Agent Runtime
 deploy-indexer:
-	adk deploy agent_engine \
+	$(ADK) deploy agent_engine \
 		--project=$(PROJECT_ID) \
 		--region=$(REGION) \
 		agents/indexer_agent
 
 deploy-storyboard:
-	adk deploy agent_engine \
+	$(ADK) deploy agent_engine \
 		--project=$(PROJECT_ID) \
 		--region=$(REGION) \
 		agents/storyboard_agent
